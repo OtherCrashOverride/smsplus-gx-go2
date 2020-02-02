@@ -351,7 +351,7 @@ int main (int argc, char **argv)
 
 
     const char* romfile = argv[1];
-    load_rom(romfile);
+    load_rom(romfile, argc > 2 ? argv[2] : NULL);
 
     sms.use_fm = 0;
     bitmap.width = VIDEO_WIDTH;

@@ -26,7 +26,7 @@
 #define _LOADROM_H_
 
 /* Function prototypes */
-int load_rom(char *filename);
+int load_rom(const char *filename, const char* bios);
 
 #ifndef NGC
 unsigned char *loadzip(char *archive, char *filename, int *filesize);

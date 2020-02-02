@@ -361,7 +361,7 @@ void set_config()
 #endif
 }
 
-int load_rom (char *filename)
+int load_rom(const char *filename, const char* bios)
 {
     FILE *fd = NULL;
 
@@ -375,10 +375,15 @@ int load_rom (char *filename)
 
     if (strcmp(filename + (nameLength - 4), ".col") == 0)
     {
-        fd = fopen("BIOS.col", "rb");
+        if (!bios)
+        {
+          bios = "BIOS.col";
+        }
+
+        fd = fopen(bios, "rb");
         if(!fd)
         {
-          printf("BIOS.col not found.\n");
+          printf("BIOS (%s) not found.\n", bios);
           abort();
         }
 
