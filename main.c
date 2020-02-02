@@ -43,6 +43,7 @@ static go2_presenter_t* presenter;
 static go2_audio_t* audio;
 static go2_input_t* go2input;
 static go2_gamepad_state_t gamepadState;
+static go2_gamepad_state_t previousState;
 
 static volatile bool isRunning = true;
 
@@ -187,17 +188,26 @@ void system_manage_sram(uint8 *sram, int slot, int mode)
 
 static void game_step()
 {
+    // Map thumbstick to dpad
+    const float TRIM = 0.35f;
+
+    if (gamepadState.thumb.y < -TRIM) gamepadState.dpad.up = ButtonState_Pressed;
+    if (gamepadState.thumb.y > TRIM) gamepadState.dpad.down = ButtonState_Pressed;
+    if (gamepadState.thumb.x < -TRIM) gamepadState.dpad.left = ButtonState_Pressed;
+    if (gamepadState.thumb.x > TRIM) gamepadState.dpad.right = ButtonState_Pressed;
+
+
     int smsButtons=0;
-    // if (joystick.values[ODROID_INPUT_UP]) smsButtons |= INPUT_UP;
-    // if (joystick.values[ODROID_INPUT_DOWN]) smsButtons |= INPUT_DOWN;
-    // if (joystick.values[ODROID_INPUT_LEFT]) smsButtons |= INPUT_LEFT;
-    // if (joystick.values[ODROID_INPUT_RIGHT]) smsButtons |= INPUT_RIGHT;
-    // if (joystick.values[ODROID_INPUT_A]) smsButtons |= INPUT_BUTTON2;
-    // if (joystick.values[ODROID_INPUT_B]) smsButtons |= INPUT_BUTTON1;
+    if (gamepadState.dpad.up) smsButtons |= INPUT_UP;
+    if (gamepadState.dpad.down) smsButtons |= INPUT_DOWN;
+    if (gamepadState.dpad.left) smsButtons |= INPUT_LEFT;
+    if (gamepadState.dpad.right) smsButtons |= INPUT_RIGHT;
+    if (gamepadState.buttons.a) smsButtons |= INPUT_BUTTON2;
+    if (gamepadState.buttons.b) smsButtons |= INPUT_BUTTON1;
 
     int smsSystem=0;
-    // if (joystick.values[ODROID_INPUT_START]) smsSystem |= INPUT_START;
-    // if (joystick.values[ODROID_INPUT_SELECT]) smsSystem |= INPUT_PAUSE;
+    if (gamepadState.buttons.f4) smsSystem |= INPUT_START;
+    if (gamepadState.buttons.f3) smsSystem |= INPUT_PAUSE;
 
     input.pad[0]=smsButtons;
     input.system=smsSystem;
@@ -209,72 +219,79 @@ static void game_step()
         coleco.keypad[0] = 0xff;
         coleco.keypad[1] = 0xff;
 
-        // // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, *, #
-        // switch (cart.crc)
-        // {
-        //     case 0x798002a2:    // Frogger
-        //     case 0x32b95be0:    // Frogger
-        //     case 0x9cc3fabc:    // Alcazar
-        //     case 0x964db3bc:    // Fraction Fever
-        //         if (joystick.values[ODROID_INPUT_START])
-        //         {
-        //             coleco.keypad[0] = 10; // *
-        //         }
+        // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, *, #
+        switch (cart.crc)
+        {
+            case 0x798002a2:    // Frogger
+            case 0x32b95be0:    // Frogger
+            case 0x9cc3fabc:    // Alcazar
+            case 0x964db3bc:    // Fraction Fever
+                if (gamepadState.buttons.f4)
+                {
+                    coleco.keypad[0] = 10; // *
+                }
 
-        //         if (previousState.values[ODROID_INPUT_SELECT] &&
-        //             !joystick.values[ODROID_INPUT_SELECT])
-        //         {
-        //             system_reset();
-        //         }
-        //         break;
+                // if (previousState.values[ODROID_INPUT_SELECT] &&
+                //     !joystick.values[ODROID_INPUT_SELECT])
+                // {
+                //     system_reset();
+                // }
+                break;
 
-        //     case 0x1796de5e:    // Boulder Dash
-        //     case 0x5933ac18:    // Boulder Dash
-        //     case 0x6e5c4b11:    // Boulder Dash
-        //         if (joystick.values[ODROID_INPUT_START])
-        //         {
-        //             coleco.keypad[0] = 11; // #
-        //         }
+            case 0x1796de5e:    // Boulder Dash
+            case 0x5933ac18:    // Boulder Dash
+            case 0x6e5c4b11:    // Boulder Dash
+                if (gamepadState.buttons.f4)
+                {
+                    coleco.keypad[0] = 11; // #
+                }
 
-        //         if (joystick.values[ODROID_INPUT_START] &&
-        //             joystick.values[ODROID_INPUT_LEFT])
-        //         {
-        //             coleco.keypad[0] = 1;
-        //         }
+                if (gamepadState.buttons.f4 &&
+                    gamepadState.dpad.left)
+                {
+                    coleco.keypad[0] = 1;
+                }
 
-        //         if (previousState.values[ODROID_INPUT_SELECT] &&
-        //             !joystick.values[ODROID_INPUT_SELECT])
-        //         {
-        //             system_reset();
-        //         }
-        //         break;
-        //     case 0x109699e2:    // Dr. Seuss's Fix-Up The Mix-Up Puzzler
-        //     case 0x614bb621:    // Decathlon
-        //         if (joystick.values[ODROID_INPUT_START])
-        //         {
-        //             coleco.keypad[0] = 1;
-        //         }
-        //         if (joystick.values[ODROID_INPUT_START] &&
-        //             joystick.values[ODROID_INPUT_LEFT])
-        //         {
-        //             coleco.keypad[0] = 10; // *
-        //         }
-        //         break;
+                // if (previousState.values[ODROID_INPUT_SELECT] &&
+                //     !joystick.values[ODROID_INPUT_SELECT])
+                // {
+                //     system_reset();
+                // }
+                break;
+            case 0x109699e2:    // Dr. Seuss's Fix-Up The Mix-Up Puzzler
+            case 0x614bb621:    // Decathlon
+                if (gamepadState.buttons.f4)
+                {
+                    coleco.keypad[0] = 1;
+                }
+                if (gamepadState.buttons.f4 &&
+                    gamepadState.dpad.left)
+                {
+                    coleco.keypad[0] = 10; // *
+                }
+                break;
 
-        //     default:
-        //         if (joystick.values[ODROID_INPUT_START])
-        //         {
-        //             coleco.keypad[0] = 1;
-        //         }
+            default:
+                if (gamepadState.buttons.f4)
+                {
+                    coleco.keypad[0] = 1;
+                }
 
-        //         if (previousState.values[ODROID_INPUT_SELECT] &&
-        //             !joystick.values[ODROID_INPUT_SELECT])
-        //         {
-        //             system_reset();
-        //         }
-        //         break;
-        // }
+                // if (previousState.values[ODROID_INPUT_SELECT] &&
+                //     !joystick.values[ODROID_INPUT_SELECT])
+                // {
+                //     system_reset();
+                // }
+                break;
+        }
+
+        if (previousState.buttons.f6 & !gamepadState.buttons.f6)
+        {
+            system_reset();
+        }
     }
+
+    previousState = gamepadState;
 
     // if (0 || (frame % 2) == 0)
     // {
