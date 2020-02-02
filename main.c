@@ -37,6 +37,37 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "core/shared.h"
 
 
+typedef struct vector2
+{
+    float x;
+    float y;
+} vector2_t;
+
+static const vector2_t vector2_left = {-1, 0};
+static const vector2_t vector2_right = {1 , 0};
+static const vector2_t vector2_up = {0 , -1};
+static const vector2_t vector2_down = {0, 1};
+
+static float vector2_dot(const vector2_t* value1, const vector2_t* value2)
+{
+    return (value1->x * value2->x) + (value1->y * value2->y);
+}
+
+static void vector2_clamp(vector2_t* value)
+{
+    if (value->x > 1.0f)
+        value->x = 1.0f;
+    else if (value->x < -1.0f)
+        value->x = -1.0f;
+    
+    if (value->y > 1.0f)
+        value->y = 1.0f;
+    else if (value->y < -1.0f)
+        value->y = -1.0f;
+}
+
+
+
 
 static go2_display_t* display;
 static go2_presenter_t* presenter;
@@ -159,15 +190,40 @@ void system_manage_sram(uint8 *sram, int slot, int mode)
     //sram_load();
 }
 
+
+
 static void game_step()
 {
     // Map thumbstick to dpad
     const float TRIM = 0.35f;
 
-    if (gamepadState.thumb.y < -TRIM) gamepadState.dpad.up = ButtonState_Pressed;
-    if (gamepadState.thumb.y > TRIM) gamepadState.dpad.down = ButtonState_Pressed;
-    if (gamepadState.thumb.x < -TRIM) gamepadState.dpad.left = ButtonState_Pressed;
-    if (gamepadState.thumb.x > TRIM) gamepadState.dpad.right = ButtonState_Pressed;
+    // if (gamepadState.thumb.x > 1.0f) || gamepadState.thumb.y > 1.0f)
+    // {
+    //     printf("thmb = %f, %f\n", gamepadState.thumb.x, gamepadState.thumb.y);
+    // }
+
+    vector2_t t = {gamepadState.thumb.x, gamepadState.thumb.y};
+    vector2_clamp(&t);
+
+    //printf("thmb = %f, %f\n",t.x, t.y);
+    
+    float pl = vector2_dot(&t, &vector2_left);
+    float pr = vector2_dot(&t, &vector2_right);
+    float pu = vector2_dot(&t, &vector2_up);
+    float pd = vector2_dot(&t, &vector2_down);
+
+
+    const float PMAX = 0.50f;
+    if (pu >= PMAX) gamepadState.dpad.up = ButtonState_Pressed;
+    if (pd >= PMAX) gamepadState.dpad.down = ButtonState_Pressed;
+    if (pl >= PMAX) gamepadState.dpad.left = ButtonState_Pressed;
+    if (pr >= PMAX) gamepadState.dpad.right = ButtonState_Pressed;
+
+    // if (gamepadState.thumb.y < -TRIM) gamepadState.dpad.up = ButtonState_Pressed;
+    // if (gamepadState.thumb.y > TRIM) gamepadState.dpad.down = ButtonState_Pressed;
+    // if (gamepadState.thumb.x < -TRIM) gamepadState.dpad.left = ButtonState_Pressed;
+    // if (gamepadState.thumb.x > TRIM) gamepadState.dpad.right = ButtonState_Pressed;
+
 
 
     int smsButtons=0;
@@ -325,6 +381,8 @@ static void game_step()
     //odroid_audio_submit((short*)audioBuffer, snd.sample_count - 1);
     ProcessAudio((uint8_t*)audioBuffer, snd.sample_count - 1);
 }
+
+
 
 int main (int argc, char **argv)
 {
