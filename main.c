@@ -133,49 +133,22 @@ static int LoadState(const char* saveName)
 	if (!file)
 		return -1;
 
-	fseek(file, 0, SEEK_END);
-	long size = ftell(file);
-	rewind(file);
-
-    if (size < 1) return -1;
-
-    void* ptr = malloc(size);
-    if (!ptr) abort();
-
-    size_t count = fread(ptr, 1, size, file);
-    if ((size_t)size != count)
-    {
-        free(ptr);
-        abort();
-    }
+    system_load_state(file);
 
     fclose(file);
-
-    //prosystem_Load((const char *)ptr);
-    free(ptr);
 
     return 0;
 }
 
 static void SaveState(const char* saveName)
 {
-    char buffer[1024 * 64];
-
-    int size = 0;
-    //prosystem_Save(buffer, false, &size);
-    
-
     FILE* file = fopen(saveName, "wb");
 	if (!file)
     {
 		abort();
     }
 
-    size_t count = fwrite(buffer, 1, size, file);
-    if (count != size)
-    {
-        abort();
-    }
+    system_save_state(file);
 
     fclose(file);
 }
@@ -414,7 +387,7 @@ int main (int argc, char **argv)
 
     char* savePath = PathCombine(homedir, saveName);
     printf("savePath='%s'\n", savePath);
-    //LoadState(savePath);
+    LoadState(savePath);
 
 
 
@@ -490,7 +463,7 @@ int main (int argc, char **argv)
 #endif
     }
 
-    //SaveState(savePath);
+    SaveState(savePath);
     free(savePath);
 
     // Clean up
